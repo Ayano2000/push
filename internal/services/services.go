@@ -3,15 +3,14 @@ package services
 import (
 	"context"
 	"github.com/Ayano2000/push/internal/config"
+	"github.com/Ayano2000/push/internal/pkg/minio"
 	"github.com/jackc/pgx/v5"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 )
 
 type Services struct {
 	Config *config.Config
 	DB     *pgx.Conn
-	Minio  *minio.Client
+	Minio  *minio.Minio
 }
 
 func NewServices(config *config.Config) (*Services, error) {
@@ -20,10 +19,7 @@ func NewServices(config *config.Config) (*Services, error) {
 		return nil, err
 	}
 
-	minioConn, err := minio.New(config.MinioHost, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.MinioAccessKey, config.MinioSecretKey, ""),
-		Secure: config.MinioUseSSL,
-	})
+	minioClient, err := minio.NewMinio(config)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +27,7 @@ func NewServices(config *config.Config) (*Services, error) {
 	return &Services{
 		Config: config,
 		DB:     pgsqlConn,
-		Minio:  minioConn,
+		Minio:  minioClient,
 	}, nil
 }
 
