@@ -9,11 +9,13 @@ import (
 )
 
 func RegisterRoutes(mux *http.ServeMux, handler *handlers.Handler) error {
-	mux.HandleFunc("POST /endpoint", handler.CreateBucket)
+	mux.HandleFunc("POST /buckets", handler.CreateBucket)
+	mux.HandleFunc("GET /buckets", handler.ListBuckets)
+	mux.HandleFunc("GET /buckets/{name}", handler.GetBucketContents)
 
 	// custom endpoints
 	var buckets []types.Bucket
-	err := handler.Services.DB.QueryRow(context.Background(), "SELECT * FROM buckets").Scan(buckets)
+	buckets, err := handler.Services.DB.GetBuckets(context.Background())
 	if err != nil {
 		return err
 	}

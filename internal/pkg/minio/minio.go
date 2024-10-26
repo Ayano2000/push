@@ -50,6 +50,7 @@ func (m *Minio) CreateBucket(ctx context.Context, bucket types.Bucket) error {
 	return nil
 }
 
+// PutObject is a wrapper for the actual minio PutObject call
 func (m *Minio) PutObject(ctx context.Context, bucket types.Bucket, payload string) error {
 	uid, err := uuid.NewRandom()
 	if err != nil {
@@ -72,4 +73,34 @@ func (m *Minio) PutObject(ctx context.Context, bucket types.Bucket, payload stri
 	}
 
 	return nil
+}
+
+// GetObjects should as much as possible be run in a separate goroutine
+// the get object calls run one at a time since there is no bulk operation
+func (m *Minio) GetObjects(ctx context.Context, bucket types.Bucket) ([]string, error) {
+	exists, err := m.Client.BucketExists(ctx, bucket.Name)
+	if err != nil {
+		return nil, errors.WithStack(err)
+	}
+	if !exists {
+		return nil, errors.WithStack(errors.New("bucket does not exist"))
+	}
+
+	var objects []string
+	objectChannel := m.Client.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{})
+	for object := range objectChannel {
+		object, err := m.Client.GetObject(ctx, bucket.Name, object.Key, minio.GetObjectOptions{})
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		payload, err := io.ReadAll(object)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+
+		objects = append(objects, string(payload))
+	}
+
+	return objects, nil
 }

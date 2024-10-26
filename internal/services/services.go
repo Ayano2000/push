@@ -4,17 +4,17 @@ import (
 	"context"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/pkg/minio"
-	"github.com/jackc/pgx/v5"
+	"github.com/Ayano2000/push/internal/pkg/pgsql"
 )
 
 type Services struct {
 	Config *config.Config
-	DB     *pgx.Conn
+	DB     *pgsql.Pgsql
 	Minio  *minio.Minio
 }
 
-func NewServices(config *config.Config) (*Services, error) {
-	pgsqlConn, err := pgx.Connect(context.Background(), config.DatabaseURL)
+func NewServices(ctx context.Context, config *config.Config) (*Services, error) {
+	pgsqlClient, err := pgsql.NewPgsql(ctx, config)
 	if err != nil {
 		return nil, err
 	}
@@ -26,11 +26,11 @@ func NewServices(config *config.Config) (*Services, error) {
 
 	return &Services{
 		Config: config,
-		DB:     pgsqlConn,
+		DB:     pgsqlClient,
 		Minio:  minioClient,
 	}, nil
 }
 
-func (s *Services) Cleanup() error {
-	return s.DB.Close(context.Background())
+func (s *Services) Cleanup() {
+	s.DB.Close()
 }

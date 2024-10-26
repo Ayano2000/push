@@ -44,5 +44,4 @@ func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request, bucket t
 	if _, err = w.Write([]byte(postTransform)); err != nil {
 		log.Printf("Error writing response: %v", err)
 	}
-	return
 }
