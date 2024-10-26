@@ -2,9 +2,8 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/Ayano2000/push/internal/pkg/transformer"
 	"github.com/Ayano2000/push/internal/types"
-	"github.com/itchyny/gojq"
-	"github.com/minio/minio-go/v7"
 	"net/http"
 )
 
@@ -17,26 +16,14 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// JQ filter is valid
-	if bucket.JQFilter != "" {
-		_, err = gojq.Parse(bucket.JQFilter)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	err = transformer.ValidFilter(bucket.JQFilter)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Create bucket if the name isn't already taken
-	exists, err := h.Services.Minio.BucketExists(r.Context(), bucket.Name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if exists {
-		http.Error(w, "Bucket already exists", http.StatusConflict)
-		return
-	}
-
-	err = h.Services.Minio.MakeBucket(r.Context(), bucket.Name, minio.MakeBucketOptions{})
+	err = h.Services.Minio.CreateBucket(r.Context(), bucket)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -54,4 +41,8 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) ListBuckets(w http.ResponseWriter, r *http.Request) {
+
 }
