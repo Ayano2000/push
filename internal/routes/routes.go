@@ -11,7 +11,9 @@ import (
 func RegisterRoutes(mux *http.ServeMux, handler *handlers.Handler) error {
 	mux.HandleFunc("POST /buckets", handler.CreateBucket)
 	mux.HandleFunc("GET /buckets", handler.ListBuckets)
-	mux.HandleFunc("GET /buckets/{name}", handler.GetBucketContents)
+	mux.HandleFunc("GET /buckets/{name}", handler.ListBucketContents)
+	mux.HandleFunc("DELETE /buckets/{name}", handler.DeleteBucket)
+	mux.HandleFunc("DELETE /buckets/{name}/contents", handler.DeleteBucketContents)
 
 	// custom endpoints
 	var buckets []types.Bucket

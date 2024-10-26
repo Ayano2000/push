@@ -56,7 +56,7 @@ func (h *Handler) ListBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) GetBucketContents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) ListBucketContents(w http.ResponseWriter, r *http.Request) {
 	name := r.URL.Query().Get("name")
 
 	bucket, err := h.Services.DB.GetBucketByName(r.Context(), name)
@@ -75,4 +75,12 @@ func (h *Handler) GetBucketContents(w http.ResponseWriter, r *http.Request) {
 	if err = json.NewEncoder(w).Encode(content); err != nil {
 		log.Printf("Error writing response: %v", err)
 	}
+}
+
+func (h *Handler) DeleteBucket(w http.ResponseWriter, r *http.Request) {
+	// todo
+}
+
+func (h *Handler) DeleteBucketContents(w http.ResponseWriter, r *http.Request) {
+	// todo
 }
