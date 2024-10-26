@@ -3,38 +3,34 @@ package services
 import (
 	"context"
 	"github.com/Ayano2000/push/internal/config"
-	"github.com/jackc/pgx/v5"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/Ayano2000/push/internal/pkg/minio"
+	"github.com/Ayano2000/push/internal/pkg/pgsql"
 )
 
 type Services struct {
 	Config *config.Config
-	DB     *pgx.Conn
-	Minio  *minio.Client
+	DB     *pgsql.Pgsql
+	Minio  *minio.Minio
 }
 
-func NewServices(config *config.Config) (*Services, error) {
-	pgsqlConn, err := pgx.Connect(context.Background(), config.DatabaseURL)
+func NewServices(ctx context.Context, config *config.Config) (*Services, error) {
+	pgsqlClient, err := pgsql.NewPgsql(ctx, config)
 	if err != nil {
 		return nil, err
 	}
 
-	minioConn, err := minio.New(config.MinioHost, &minio.Options{
-		Creds:  credentials.NewStaticV4(config.MinioAccessKey, config.MinioSecretKey, ""),
-		Secure: config.MinioUseSSL,
-	})
+	minioClient, err := minio.NewMinio(config)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Services{
 		Config: config,
-		DB:     pgsqlConn,
-		Minio:  minioConn,
+		DB:     pgsqlClient,
+		Minio:  minioClient,
 	}, nil
 }
 
-func (s *Services) Cleanup() error {
-	return s.DB.Close(context.Background())
+func (s *Services) Cleanup() {
+	s.DB.Close()
 }

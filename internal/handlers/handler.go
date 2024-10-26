@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/services"
 )
@@ -10,8 +11,8 @@ type Handler struct {
 	Services *services.Services
 }
 
-func NewHandler(config *config.Config) (*Handler, error) {
-	s, err := services.NewServices(config)
+func NewHandler(ctx context.Context, config *config.Config) (*Handler, error) {
+	s, err := services.NewServices(ctx, config)
 	if err != nil {
 		return nil, err
 	}
