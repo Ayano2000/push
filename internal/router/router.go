@@ -102,3 +102,5 @@ func RegisterRoutes(handler *handlers.Handler) (*Router, error) {
 
 	return dmux, nil
 }
+
+var _ types.WebhookRegistrar = (*Router)(nil)
