@@ -3,10 +3,15 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/Ayano2000/push/internal/pkg/transformer"
+	"github.com/Ayano2000/push/internal/routes"
 	"github.com/Ayano2000/push/internal/types"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
+
+type contextKey string
+
+const muxContextKey contextKey = "mux"
 
 // CreateWebhook will create a minio Webhook,
 // a database row and update the server to listen for requests
@@ -20,7 +25,6 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// JQ filter is valid
 	err = transformer.ValidFilter(webhook.JQFilter)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
@@ -28,7 +32,6 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create webhook if the name isn't already taken
 	err = h.Services.Minio.CreateBucket(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
@@ -36,12 +39,16 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add db row
 	err = h.Services.DB.CreateWebhook(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// update mux to include this route
+	if dmux, ok := r.Context().Value(muxContextKey).(*routes.DynamicMux); ok {
+		dmux.RegisterWebhook(webhook)
 	}
 
 	w.WriteHeader(http.StatusOK)
