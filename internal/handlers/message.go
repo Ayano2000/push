@@ -8,31 +8,31 @@ import (
 	"net/http"
 )
 
-// HandleRequest will read and dump the request body in minio: after running it
+// HandleMessage will read and dump the request body in minio: after running it
 // through the jq filter for the endpoint (if one is set), before forwarding it to
 // the endpoints defined forward_to value (if one is set)
-func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request, bucket types.Bucket) {
+func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, webhook types.Webhook) {
 	preTransform, err := io.ReadAll(r.Body)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	if bucket.PreservePayload {
-		err = h.Services.Minio.PutObject(r.Context(), bucket, string(preTransform))
+	if webhook.PreservePayload {
+		err = h.Services.Minio.PutObject(r.Context(), webhook, string(preTransform))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
 
-	postTransform, err := transformer.Transform(r.Context(), string(preTransform), bucket.JQFilter)
+	postTransform, err := transformer.Transform(r.Context(), string(preTransform), webhook.JQFilter)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	err = h.Services.Minio.PutObject(r.Context(), bucket, postTransform)
+	err = h.Services.Minio.PutObject(r.Context(), webhook, postTransform)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

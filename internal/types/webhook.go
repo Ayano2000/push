@@ -1,6 +1,6 @@
 package types
 
-type Bucket struct {
+type Webhook struct {
 	Name            string `json:"name"`
 	Description     string `json:"description"`
 	Path            string `json:"path"`

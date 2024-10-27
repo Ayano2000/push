@@ -9,23 +9,23 @@ import (
 )
 
 func RegisterRoutes(mux *http.ServeMux, handler *handlers.Handler) error {
-	mux.HandleFunc("POST /buckets", handler.CreateBucket)
-	mux.HandleFunc("GET /buckets", handler.GetBuckets)
-	mux.HandleFunc("GET /buckets/{name}/content", handler.GetBucketContent)
-	mux.HandleFunc("DELETE /buckets/{name}", handler.DeleteBucket)
-	mux.HandleFunc("DELETE /buckets/{name}/content", handler.DeleteBucketContents)
+	mux.HandleFunc("POST /webhooks", handler.CreateWebhook)
+	mux.HandleFunc("GET /webhooks", handler.GetWebhooks)
+	mux.HandleFunc("GET /webhooks/{name}/content", handler.GetWebhookContent)
+	mux.HandleFunc("DELETE /webhooks/{name}", handler.DeleteWebhook)
+	mux.HandleFunc("DELETE /webhooks/{name}/content", handler.DeleteWebhookContents)
 
 	// custom endpoints
-	var buckets []types.Bucket
-	buckets, err := handler.Services.DB.GetBuckets(context.Background())
+	var webhooks []types.Webhook
+	webhooks, err := handler.Services.DB.GetWebhooks(context.Background())
 	if err != nil {
 		return err
 	}
 
-	for _, bucket := range buckets {
-		pattern := fmt.Sprintf("%s %s", bucket.Method, bucket.Path)
+	for _, webhook := range webhooks {
+		pattern := fmt.Sprintf("%s %s", webhook.Method, webhook.Path)
 		mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-			handler.HandleRequest(w, r, bucket)
+			handler.HandleMessage(w, r, webhook)
 		})
 	}
 

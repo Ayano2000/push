@@ -33,16 +33,16 @@ func NewMinio(config *config.Config) (*Minio, error) {
 }
 
 // CreateBucket will throw an error if the requested name is already in use
-func (m *Minio) CreateBucket(ctx context.Context, bucket types.Bucket) error {
-	exists, err := m.Client.BucketExists(ctx, bucket.Name)
+func (m *Minio) CreateBucket(ctx context.Context, webhook types.Webhook) error {
+	exists, err := m.Client.BucketExists(ctx, webhook.Name)
 	if err != nil {
 		return errors.WithStack(err)
 	}
 	if exists {
-		return errors.WithStack(errors.New("bucket already exists"))
+		return errors.WithStack(errors.New("webhook already exists"))
 	}
 
-	err = m.Client.MakeBucket(ctx, bucket.Name, minio.MakeBucketOptions{})
+	err = m.Client.MakeBucket(ctx, webhook.Name, minio.MakeBucketOptions{})
 	if err != nil {
 		return errors.WithStack(err)
 	}
@@ -51,7 +51,7 @@ func (m *Minio) CreateBucket(ctx context.Context, bucket types.Bucket) error {
 }
 
 // PutObject is a wrapper for the actual minio PutObject call
-func (m *Minio) PutObject(ctx context.Context, bucket types.Bucket, payload string) error {
+func (m *Minio) PutObject(ctx context.Context, webhook types.Webhook, payload string) error {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return errors.WithStack(err)
@@ -59,7 +59,7 @@ func (m *Minio) PutObject(ctx context.Context, bucket types.Bucket, payload stri
 
 	_, err = m.Client.PutObject(
 		ctx,
-		bucket.Name,
+		webhook.Name,
 		uid.String(),
 		io.NopCloser(strings.NewReader(payload)),
 		int64(len(payload)),
@@ -77,19 +77,19 @@ func (m *Minio) PutObject(ctx context.Context, bucket types.Bucket, payload stri
 
 // GetObjects should as much as possible be run in a separate goroutine
 // the get object calls run one at a time since there is no bulk operation
-func (m *Minio) GetObjects(ctx context.Context, bucket types.Bucket) ([]string, error) {
-	exists, err := m.Client.BucketExists(ctx, bucket.Name)
+func (m *Minio) GetObjects(ctx context.Context, webhook types.Webhook) ([]string, error) {
+	exists, err := m.Client.BucketExists(ctx, webhook.Name)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	if !exists {
-		return nil, errors.WithStack(errors.New("bucket does not exist"))
+		return nil, errors.WithStack(errors.New("webhook does not exist"))
 	}
 
 	var objects []string
-	objectChannel := m.Client.ListObjects(ctx, bucket.Name, minio.ListObjectsOptions{})
+	objectChannel := m.Client.ListObjects(ctx, webhook.Name, minio.ListObjectsOptions{})
 	for object := range objectChannel {
-		object, err := m.Client.GetObject(ctx, bucket.Name, object.Key, minio.GetObjectOptions{})
+		object, err := m.Client.GetObject(ctx, webhook.Name, object.Key, minio.GetObjectOptions{})
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
