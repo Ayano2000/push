@@ -26,6 +26,7 @@ func NewDynamicMux(handler *handlers.Handler) *DynamicMux {
 	}
 }
 
+// HandleFunc registers a new route with its handler function
 func (dmux *DynamicMux) HandleFunc(pattern string, handler http.HandlerFunc) {
 	dmux.mutex.Lock()
 	defer dmux.mutex.Unlock()
@@ -33,6 +34,15 @@ func (dmux *DynamicMux) HandleFunc(pattern string, handler http.HandlerFunc) {
 	dmux.routes[pattern] = handler
 }
 
+// RegisterWebhook adds a new webhook route dynamically
+func (dmux *DynamicMux) RegisterWebhook(webhook types.Webhook) {
+	pattern := fmt.Sprintf(PatternString, webhook.Method, webhook.Path)
+	dmux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		dmux.handler.HandleMessage(w, r, webhook)
+	})
+}
+
+// ServeHTTP implements the http.Handler interface
 func (dmux *DynamicMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dmux.mutex.RLock()
 	pattern := fmt.Sprintf(PatternString, r.Method, r.URL.Path)
@@ -46,21 +56,14 @@ func (dmux *DynamicMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	handler(w, r)
 }
 
-func (dmux *DynamicMux) RegisterWebhook(webhook types.Webhook) {
-	pattern := fmt.Sprintf(PatternString, webhook.Method, webhook.Path)
-	dmux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
-		dmux.handler.HandleMessage(w, r, webhook)
-	})
-}
-
-// Use adds methods to append to middleware
+// Use appends the given functions to middleware
 func (dmux *DynamicMux) Use(middleware ...func(http.HandlerFunc) http.HandlerFunc) {
 	dmux.middleware = append(dmux.middleware, middleware...)
 }
 
-// Apply middleware to a handler
+// applyMiddleware will invoke the dmux.middleware functions in reverse order
+// so the first middleware in the chain is the outermost wrapper
 func (dmux *DynamicMux) applyMiddleware(handler http.HandlerFunc) http.HandlerFunc {
-	// Reverse order so the first middleware in the chain is the outermost wrapper
 	for i := len(dmux.middleware) - 1; i >= 0; i-- {
 		handler = dmux.middleware[i](handler)
 	}
