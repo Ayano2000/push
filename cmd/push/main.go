@@ -37,15 +37,24 @@ func main() {
 
 	defer handler.Services.Cleanup()
 
-	mux := http.NewServeMux()
-	err = routes.RegisterRoutes(mux, handler)
+	dmux, err := routes.RegisterRoutes(handler)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to register routes: %v\n", err)
 		os.Exit(1)
 	}
 
+	wrapper := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), "mux", dmux)
+		dmux.ServeHTTP(w, r.WithContext(ctx))
+	})
+
+	server := http.Server{
+		Addr:    conf.ServerAddress,
+		Handler: wrapper,
+	}
+
 	fmt.Fprintf(os.Stdout, "Server is running on: %s", conf.ServerAddress)
-	if err := http.ListenAndServe(conf.ServerAddress, mux); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintf(os.Stdout, "Failed to start server: %v", err)
 	}
 }
