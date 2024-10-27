@@ -2,56 +2,92 @@ package handlers
 
 import (
 	"encoding/json"
+	"github.com/Ayano2000/push/internal/pkg/transformer"
 	"github.com/Ayano2000/push/internal/types"
-	"github.com/itchyny/gojq"
-	"github.com/minio/minio-go/v7"
+	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
+// CreateBucket will create a minio Bucket,
+// a database row and update the server to listen for requests
+// made to http://basepath/<bucket_name>
 func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	var bucket types.Bucket
 	err := json.NewDecoder(r.Body).Decode(&bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// JQ filter is valid
-	if bucket.JQFilter != "" {
-		_, err = gojq.Parse(bucket.JQFilter)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
+	err = transformer.ValidFilter(bucket.JQFilter)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
 	// Create bucket if the name isn't already taken
-	exists, err := h.Services.Minio.BucketExists(r.Context(), bucket.Name)
+	err = h.Services.Minio.CreateBucket(r.Context(), bucket)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	if exists {
-		http.Error(w, "Bucket already exists", http.StatusConflict)
-		return
-	}
-
-	err = h.Services.Minio.MakeBucket(r.Context(), bucket.Name, minio.MakeBucketOptions{})
-	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	// Add db row
-	_, err = h.Services.DB.Exec(r.Context(), `
-		INSERT INTO buckets (name, path, method, description, jq_filter, forward_to) 
-		VALUES ($1, $2, $3, $4, $5, $6)`,
-		bucket.Name, bucket.Path, bucket.Method, bucket.Description, bucket.JQFilter, bucket.ForwardTo,
-	)
+	err = h.Services.DB.CreateBucket(r.Context(), bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (h *Handler) GetBuckets(w http.ResponseWriter, r *http.Request) {
+	buckets, err := h.Services.DB.GetBuckets(r.Context())
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(buckets); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
+}
+
+func (h *Handler) GetBucketContent(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
+
+	bucket, err := h.Services.DB.GetBucketByName(r.Context(), name)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	content, err := h.Services.Minio.GetObjects(r.Context(), bucket)
+	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err = json.NewEncoder(w).Encode(content); err != nil {
+		log.Printf("Error writing response: %v", err)
+	}
+}
+
+func (h *Handler) DeleteBucket(w http.ResponseWriter, r *http.Request) {
+	// todo
+}
+
+func (h *Handler) DeleteBucketContents(w http.ResponseWriter, r *http.Request) {
+	// todo
 }

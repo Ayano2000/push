@@ -3,7 +3,7 @@ build_dir := ./bin
 source := ./cmd/push/main.go
 
 .PHONY: build
-build:
+build: clean
 	@echo "Building the application..."
 	go build -o $(build_dir)/push $(source)
 
@@ -27,10 +27,10 @@ up:
 .PHONY: help
 help:
 	@echo "Makefile commands:"
-	@echo "  make build  - Build the application"
+	@echo "  make build  						   - Build the application"
 	@echo "  make run env=<development|production> - Build and run the application with a target environment"
-	@echo "  make clean  - Remove build artifacts"
-	@echo "  make help   - Show this help message"
-	@echo "  make up     - Start the projects containers in the background"
-	@echo "  make down   - Stop the projects containers"
+	@echo "  make clean                            - Remove build artifacts"
+	@echo "  make help                             - Show this help message"
+	@echo "  make up                               - Start the projects containers in the background"
+	@echo "  make down                             - Stop the projects containers"
 
