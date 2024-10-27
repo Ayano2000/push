@@ -1,4 +1,4 @@
-package routes
+package router
 
 import (
 	"context"
@@ -9,17 +9,20 @@ import (
 	"sync"
 )
 
-const PatternString = "%s %s"
+const (
+	PatternString                     = "%s %s"
+	muxContextKey types.MuxContextKey = "router"
+)
 
-type DynamicMux struct {
+type Router struct {
 	mutex      sync.RWMutex
 	routes     map[string]http.HandlerFunc
 	handler    *handlers.Handler
 	middleware []func(http.HandlerFunc) http.HandlerFunc
 }
 
-func NewDynamicMux(handler *handlers.Handler) *DynamicMux {
-	return &DynamicMux{
+func NewDynamicMux(handler *handlers.Handler) *Router {
+	return &Router{
 		routes:     make(map[string]http.HandlerFunc),
 		handler:    handler,
 		middleware: make([]func(http.HandlerFunc) http.HandlerFunc, 0),
@@ -27,7 +30,7 @@ func NewDynamicMux(handler *handlers.Handler) *DynamicMux {
 }
 
 // HandleFunc registers a new route with its handler function
-func (dmux *DynamicMux) HandleFunc(pattern string, handler http.HandlerFunc) {
+func (dmux *Router) HandleFunc(pattern string, handler http.HandlerFunc) {
 	dmux.mutex.Lock()
 	defer dmux.mutex.Unlock()
 
@@ -35,7 +38,7 @@ func (dmux *DynamicMux) HandleFunc(pattern string, handler http.HandlerFunc) {
 }
 
 // RegisterWebhook adds a new webhook route dynamically
-func (dmux *DynamicMux) RegisterWebhook(webhook types.Webhook) {
+func (dmux *Router) RegisterWebhook(webhook types.Webhook) {
 	pattern := fmt.Sprintf(PatternString, webhook.Method, webhook.Path)
 	dmux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		dmux.handler.HandleMessage(w, r, webhook)
@@ -43,7 +46,7 @@ func (dmux *DynamicMux) RegisterWebhook(webhook types.Webhook) {
 }
 
 // ServeHTTP implements the http.Handler interface
-func (dmux *DynamicMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+func (dmux *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dmux.mutex.RLock()
 	pattern := fmt.Sprintf(PatternString, r.Method, r.URL.Path)
 	handler, exists := dmux.routes[pattern]
@@ -53,27 +56,33 @@ func (dmux *DynamicMux) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	handler(w, r)
+
+	ctx := context.WithValue(r.Context(), muxContextKey, dmux)
+	r = r.WithContext(ctx)
+
+	// Apply middleware to the handler if any
+	handlerWithMiddleware := dmux.applyMiddleware(handler)
+	handlerWithMiddleware(w, r)
 }
 
 // Use appends the given functions to middleware
-func (dmux *DynamicMux) Use(middleware ...func(http.HandlerFunc) http.HandlerFunc) {
+func (dmux *Router) Use(middleware ...func(http.HandlerFunc) http.HandlerFunc) {
 	dmux.middleware = append(dmux.middleware, middleware...)
 }
 
 // applyMiddleware will invoke the dmux.middleware functions in reverse order
 // so the first middleware in the chain is the outermost wrapper
-func (dmux *DynamicMux) applyMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+func (dmux *Router) applyMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	for i := len(dmux.middleware) - 1; i >= 0; i-- {
 		handler = dmux.middleware[i](handler)
 	}
 	return handler
 }
 
-func RegisterRoutes(handler *handlers.Handler) (*DynamicMux, error) {
+func RegisterRoutes(handler *handlers.Handler) (*Router, error) {
 	dmux := NewDynamicMux(handler)
 
-	// Register static routes
+	// Register static router
 	dmux.HandleFunc("POST /webhooks", handler.CreateWebhook)
 	dmux.HandleFunc("GET /webhooks", handler.GetWebhooks)
 	dmux.HandleFunc("GET /webhooks/{name}/content", handler.GetWebhookContent)

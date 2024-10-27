@@ -2,6 +2,7 @@ package minio
 
 import (
 	"context"
+	"fmt"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/types"
 	"github.com/google/uuid"
@@ -60,7 +61,7 @@ func (m *Minio) PutObject(ctx context.Context, webhook types.Webhook, payload st
 	_, err = m.Client.PutObject(
 		ctx,
 		webhook.Name,
-		uid.String(),
+		fmt.Sprintf("%s.json", uid.String()),
 		io.NopCloser(strings.NewReader(payload)),
 		int64(len(payload)),
 		minio.PutObjectOptions{

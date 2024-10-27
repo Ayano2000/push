@@ -3,15 +3,13 @@ package handlers
 import (
 	"encoding/json"
 	"github.com/Ayano2000/push/internal/pkg/transformer"
-	"github.com/Ayano2000/push/internal/routes"
 	"github.com/Ayano2000/push/internal/types"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
-type contextKey string
-
-const muxContextKey contextKey = "mux"
+const muxContextKey types.MuxContextKey = "router"
 
 // CreateWebhook will create a minio Webhook,
 // a database row and update the server to listen for requests
@@ -46,9 +44,14 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// update mux to include this route
-	if dmux, ok := r.Context().Value(muxContextKey).(*routes.DynamicMux); ok {
-		dmux.RegisterWebhook(webhook)
+	// update router to include this route
+	if registrar, ok := r.Context().Value(muxContextKey).(types.WebhookRegistrar); ok {
+		registrar.RegisterWebhook(webhook)
+	} else {
+		err = errors.WithStack(errors.Errorf("failed to retrieve WebhookRegistrar from context"))
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	w.WriteHeader(http.StatusOK)
