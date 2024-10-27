@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"github.com/Ayano2000/push/internal/pkg/transformer"
 	"github.com/Ayano2000/push/internal/types"
-	"log"
+	"github.com/rs/zerolog/log"
 	"net/http"
 )
 
@@ -15,6 +15,7 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	var bucket types.Bucket
 	err := json.NewDecoder(r.Body).Decode(&bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -22,6 +23,7 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	// JQ filter is valid
 	err = transformer.ValidFilter(bucket.JQFilter)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -29,6 +31,7 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	// Create bucket if the name isn't already taken
 	err = h.Services.Minio.CreateBucket(r.Context(), bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -36,6 +39,7 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	// Add db row
 	err = h.Services.DB.CreateBucket(r.Context(), bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -43,9 +47,10 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) ListBuckets(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetBuckets(w http.ResponseWriter, r *http.Request) {
 	buckets, err := h.Services.DB.GetBuckets(r.Context())
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -56,17 +61,19 @@ func (h *Handler) ListBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) ListBucketContents(w http.ResponseWriter, r *http.Request) {
-	name := r.URL.Query().Get("name")
+func (h *Handler) GetBucketContent(w http.ResponseWriter, r *http.Request) {
+	name := r.PathValue("name")
 
 	bucket, err := h.Services.DB.GetBucketByName(r.Context(), name)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	content, err := h.Services.Minio.GetObjects(r.Context(), bucket)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

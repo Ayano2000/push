@@ -10,7 +10,7 @@ import (
 // Transform will take a json payload, and a JQ filter,
 func Transform(ctx context.Context, payload string, filter string) (string, error) {
 	if filter == "" {
-		return "", errors.WithStack(errors.New("no filter specified"))
+		return payload, nil
 	}
 
 	query, err := gojq.Parse(filter)
@@ -61,7 +61,7 @@ func Transform(ctx context.Context, payload string, filter string) (string, erro
 
 func ValidFilter(filter string) error {
 	if filter == "" {
-		return errors.WithStack(errors.New("no filter specified"))
+		return nil
 	}
 	_, err := gojq.Parse(filter)
 	return err

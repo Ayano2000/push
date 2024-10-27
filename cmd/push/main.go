@@ -1,15 +1,23 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/handlers"
 	"github.com/Ayano2000/push/internal/routes"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
+	"github.com/rs/zerolog/pkgerrors"
 	"net/http"
 	"os"
 )
 
 func main() {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
+	zerolog.ErrorStackMarshaler = pkgerrors.MarshalStack
+	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr}).With().Caller().Logger()
+
 	if len(os.Args) < 2 {
 		fmt.Println("Missing argument 'environment'. Usage: make run <development|production>")
 		return
@@ -21,7 +29,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	handler, err := handlers.NewHandler(conf)
+	handler, err := handlers.NewHandler(context.Background(), conf)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create Handler: %v\n", err)
 		os.Exit(1)
