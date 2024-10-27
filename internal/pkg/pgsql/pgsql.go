@@ -25,17 +25,17 @@ func NewPgsql(ctx context.Context, config *config.Config) (*Pgsql, error) {
 	}, err
 }
 
-func (pgsql *Pgsql) CreateBucket(ctx context.Context, bucket types.Bucket) error {
+func (pgsql *Pgsql) CreateWebhook(ctx context.Context, webhook types.Webhook) error {
 	_, err := pgsql.Client.Exec(ctx, `
-		INSERT INTO buckets (name, path, method, description, jq_filter, forward_to, preserve_payload) 
+		INSERT INTO webhooks (name, path, method, description, jq_filter, forward_to, preserve_payload) 
 		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		bucket.Name,
-		bucket.Path,
-		bucket.Method,
-		bucket.Description,
-		bucket.JQFilter,
-		bucket.ForwardTo,
-		bucket.PreservePayload,
+		webhook.Name,
+		webhook.Path,
+		webhook.Method,
+		webhook.Description,
+		webhook.JQFilter,
+		webhook.ForwardTo,
+		webhook.PreservePayload,
 	)
 	if err != nil {
 		return errors.WithStack(err)
@@ -44,69 +44,69 @@ func (pgsql *Pgsql) CreateBucket(ctx context.Context, bucket types.Bucket) error
 	return nil
 }
 
-func (pgsql *Pgsql) GetBuckets(ctx context.Context) ([]types.Bucket, error) {
-	rows, err := pgsql.Client.Query(ctx, `SELECT * FROM buckets`)
+func (pgsql *Pgsql) GetWebhooks(ctx context.Context) ([]types.Webhook, error) {
+	rows, err := pgsql.Client.Query(ctx, `SELECT * FROM webhooks`)
 	if err != nil {
 		return nil, errors.WithStack(err)
 	}
 	defer rows.Close()
 
-	var buckets []types.Bucket
+	var webhooks []types.Webhook
 	for rows.Next() {
-		var bucket types.Bucket
+		var webhook types.Webhook
 		err = rows.Scan(
-			&bucket.Name,
-			&bucket.Path,
-			&bucket.Method,
-			&bucket.Description,
-			&bucket.JQFilter,
-			&bucket.ForwardTo,
-			&bucket.PreservePayload)
+			&webhook.Name,
+			&webhook.Path,
+			&webhook.Method,
+			&webhook.Description,
+			&webhook.JQFilter,
+			&webhook.ForwardTo,
+			&webhook.PreservePayload)
 		if err != nil {
 			return nil, errors.WithStack(err)
 		}
-		buckets = append(buckets, bucket)
+		webhooks = append(webhooks, webhook)
 	}
 
 	if rows.Err() != nil {
 		return nil, errors.WithStack(rows.Err())
 	}
 
-	return buckets, nil
+	return webhooks, nil
 }
 
-func (pgsql *Pgsql) GetBucketByName(ctx context.Context, name string) (types.Bucket, error) {
+func (pgsql *Pgsql) GetWebhookByName(ctx context.Context, name string) (types.Webhook, error) {
 	rows, err := pgsql.Client.Query(ctx,
-		`SELECT * FROM buckets WHERE name = $1 limit 1`,
+		`SELECT * FROM webhooks WHERE name = $1 limit 1`,
 		name,
 	)
 	if err != nil {
-		return types.Bucket{}, errors.WithStack(err)
+		return types.Webhook{}, errors.WithStack(err)
 	}
 	defer rows.Close()
 
-	var buckets []types.Bucket
+	var webhooks []types.Webhook
 	for rows.Next() {
-		var bucket types.Bucket
+		var webhook types.Webhook
 		err = rows.Scan(
-			&bucket.Name,
-			&bucket.Path,
-			&bucket.Method,
-			&bucket.Description,
-			&bucket.JQFilter,
-			&bucket.ForwardTo,
-			&bucket.PreservePayload)
+			&webhook.Name,
+			&webhook.Path,
+			&webhook.Method,
+			&webhook.Description,
+			&webhook.JQFilter,
+			&webhook.ForwardTo,
+			&webhook.PreservePayload)
 		if err != nil {
-			return types.Bucket{}, errors.WithStack(err)
+			return types.Webhook{}, errors.WithStack(err)
 		}
-		buckets = append(buckets, bucket)
+		webhooks = append(webhooks, webhook)
 	}
 
 	if rows.Err() != nil {
-		return types.Bucket{}, errors.WithStack(rows.Err())
+		return types.Webhook{}, errors.WithStack(rows.Err())
 	}
 
-	return buckets[0], nil
+	return webhooks[0], nil
 }
 
 func (pgsql *Pgsql) Close() {

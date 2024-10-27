@@ -8,12 +8,12 @@ import (
 	"net/http"
 )
 
-// CreateBucket will create a minio Bucket,
+// CreateWebhook will create a minio Webhook,
 // a database row and update the server to listen for requests
-// made to http://basepath/<bucket_name>
-func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
-	var bucket types.Bucket
-	err := json.NewDecoder(r.Body).Decode(&bucket)
+// made to http://basepath/<webhook_name>
+func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
+	var webhook types.Webhook
+	err := json.NewDecoder(r.Body).Decode(&webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -21,15 +21,15 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// JQ filter is valid
-	err = transformer.ValidFilter(bucket.JQFilter)
+	err = transformer.ValidFilter(webhook.JQFilter)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	// Create bucket if the name isn't already taken
-	err = h.Services.Minio.CreateBucket(r.Context(), bucket)
+	// Create webhook if the name isn't already taken
+	err = h.Services.Minio.CreateBucket(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -37,7 +37,7 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add db row
-	err = h.Services.DB.CreateBucket(r.Context(), bucket)
+	err = h.Services.DB.CreateWebhook(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -47,8 +47,8 @@ func (h *Handler) CreateBucket(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func (h *Handler) GetBuckets(w http.ResponseWriter, r *http.Request) {
-	buckets, err := h.Services.DB.GetBuckets(r.Context())
+func (h *Handler) GetWebhooks(w http.ResponseWriter, r *http.Request) {
+	webhooks, err := h.Services.DB.GetWebhooks(r.Context())
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -56,22 +56,22 @@ func (h *Handler) GetBuckets(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if err = json.NewEncoder(w).Encode(buckets); err != nil {
+	if err = json.NewEncoder(w).Encode(webhooks); err != nil {
 		log.Printf("Error writing response: %v", err)
 	}
 }
 
-func (h *Handler) GetBucketContent(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) GetWebhookContent(w http.ResponseWriter, r *http.Request) {
 	name := r.PathValue("name")
 
-	bucket, err := h.Services.DB.GetBucketByName(r.Context(), name)
+	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), name)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	content, err := h.Services.Minio.GetObjects(r.Context(), bucket)
+	content, err := h.Services.Minio.GetObjects(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -84,10 +84,10 @@ func (h *Handler) GetBucketContent(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handler) DeleteBucket(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteWebhook(w http.ResponseWriter, r *http.Request) {
 	// todo
 }
 
-func (h *Handler) DeleteBucketContents(w http.ResponseWriter, r *http.Request) {
+func (h *Handler) DeleteWebhookContents(w http.ResponseWriter, r *http.Request) {
 	// todo
 }
