@@ -10,6 +10,7 @@ import (
 )
 
 const muxContextKey types.MuxContextKey = "router"
+const paramContextKey types.UrlParamContextKey = "parameters"
 
 // CreateWebhook will create a minio Webhook,
 // a database row and update the server to listen for requests
@@ -72,9 +73,16 @@ func (h *Handler) GetWebhooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetWebhookContent(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	params, ok := r.Context().Value(paramContextKey).(map[string]string)
+	if !ok {
+		err := errors.WithStack(
+			errors.Errorf("failed to retrieve webhook name from context"))
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), name)
+	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), params["name"])
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
