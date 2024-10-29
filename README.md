@@ -1,16 +1,11 @@
 # push
 
-A webhook server allowing users to create a new webhook that will:
-- dump the request body in a Minio bucket
-  - this can be done before and/or after it has been transformed by the user defined JQ filter
-- can run jq filters on the data
-  - if no filter is provided then the original request body will be stored 
-- can forward request's to a defined url
-  - data forwarded can be either pre- or post-transform
-  - if no url is provided, no attempt to forward the data is made
------
-## Makefile
-
------
-## Wishlist
- - [ ] clients to interact with the server (web, cli)
+Once a webhook has been created, you can:
+- Configure a JQ filter to be run against all request payloads before persisting
+  - The pre transform payload can be persisted as well by setting the `preserve_payload` field to `true` when registering the webhook.
+  - [ ] Conditional transforms
+- Inspect all payloads the webhook has received
+  - [ ] Filtering, pagination
+- Configure a the webhook to forward requests to a defined URL.
+  - The data that gets forwarded can be either pre or post transform
+  - [ ] conditional forwarding
