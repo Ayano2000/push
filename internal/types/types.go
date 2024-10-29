@@ -16,3 +16,4 @@ type WebhookRegistrar interface {
 }
 
 type MuxContextKey string
+type UrlParamContextKey string
