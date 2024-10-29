@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Ayano2000/push/internal/handlers"
+	"github.com/Ayano2000/push/internal/pkg/middleware"
 	"github.com/Ayano2000/push/internal/types"
 	"net/http"
 	"strings"
@@ -179,6 +180,11 @@ func RegisterRoutes(handler *handlers.Handler) (*Router, error) {
 	for _, webhook := range webhooks {
 		dmux.RegisterWebhook(webhook)
 	}
+
+	// Register Middleware
+	dmux.Use(
+		middleware.LogRequest,
+	)
 
 	return dmux, nil
 }

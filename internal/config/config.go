@@ -7,6 +7,7 @@ import (
 
 type Config struct {
 	DatabaseURL    string
+	LogFilePath    string
 	MinioHost      string
 	MinioAccessKey string
 	MinioSecretKey string
@@ -22,6 +23,7 @@ func NewConfig(environment string) (*Config, error) {
 
 	conf := &Config{
 		DatabaseURL:    os.Getenv("DATABASE_URL"),
+		LogFilePath:    os.Getenv("LOG_FILE_PATH"),
 		MinioHost:      os.Getenv("MINIO_HOST"),
 		MinioAccessKey: os.Getenv("MINIO_ACCESS_KEY"),
 		MinioSecretKey: os.Getenv("MINIO_SECRET_KEY"),
