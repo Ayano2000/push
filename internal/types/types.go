@@ -17,3 +17,6 @@ type WebhookRegistrar interface {
 
 type MuxContextKey string
 type UrlParamContextKey string
+type loggerContextKey string
+
+const LoggerContextKey loggerContextKey = "logger"
