@@ -5,12 +5,12 @@ source := ./cmd/push/main.go
 .PHONY: build
 build: clean
 	@echo "Building the application..."
-	go build -o $(build_dir)/push $(source)
+	go build -gcflags="all=-N -l" -o $(build_dir)/push $(source)
 
 .PHONY: run
 run: build
 	@echo "Running the application with argument: $(env)"
-	$(build_dir)/push $(env)
+	dlv --listen=:40000 --headless=true --api-version=2 exec ./$(build_dir)/push $(env)
 
 .PHONY: clean
 clean:
