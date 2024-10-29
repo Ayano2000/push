@@ -9,3 +9,11 @@ type Webhook struct {
 	ForwardTo       string `json:"forward_to"`
 	PreservePayload bool   `json:"preserve_payload"`
 }
+
+// WebhookRegistrar defines methods for registering webhooks.
+type WebhookRegistrar interface {
+	RegisterWebhook(webhook Webhook)
+}
+
+type MuxContextKey string
+type UrlParamContextKey string

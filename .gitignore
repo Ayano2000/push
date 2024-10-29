@@ -1,4 +1,4 @@
 .idea
-.env
-development.env
 bin/
+*.env
+!.env.sample

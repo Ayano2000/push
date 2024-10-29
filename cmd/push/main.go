@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/handlers"
-	"github.com/Ayano2000/push/internal/routes"
+	"github.com/Ayano2000/push/internal/router"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/rs/zerolog/pkgerrors"
@@ -37,15 +37,19 @@ func main() {
 
 	defer handler.Services.Cleanup()
 
-	mux := http.NewServeMux()
-	err = routes.RegisterRoutes(mux, handler)
+	dmux, err := router.RegisterRoutes(handler)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to register routes: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Unable to register router: %v\n", err)
 		os.Exit(1)
 	}
 
+	server := http.Server{
+		Addr:    conf.ServerAddress,
+		Handler: dmux,
+	}
+
 	fmt.Fprintf(os.Stdout, "Server is running on: %s", conf.ServerAddress)
-	if err := http.ListenAndServe(conf.ServerAddress, mux); err != nil {
+	if err := server.ListenAndServe(); err != nil {
 		fmt.Fprintf(os.Stdout, "Failed to start server: %v", err)
 	}
 }

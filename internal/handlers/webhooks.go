@@ -4,9 +4,13 @@ import (
 	"encoding/json"
 	"github.com/Ayano2000/push/internal/pkg/transformer"
 	"github.com/Ayano2000/push/internal/types"
+	"github.com/pkg/errors"
 	"github.com/rs/zerolog/log"
 	"net/http"
 )
+
+const muxContextKey types.MuxContextKey = "router"
+const paramContextKey types.UrlParamContextKey = "parameters"
 
 // CreateWebhook will create a minio Webhook,
 // a database row and update the server to listen for requests
@@ -20,7 +24,6 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// JQ filter is valid
 	err = transformer.ValidFilter(webhook.JQFilter)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
@@ -28,7 +31,6 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Create webhook if the name isn't already taken
 	err = h.Services.Minio.CreateBucket(r.Context(), webhook)
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
@@ -36,9 +38,18 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Add db row
 	err = h.Services.DB.CreateWebhook(r.Context(), webhook)
 	if err != nil {
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// update router to include this route
+	if registrar, ok := r.Context().Value(muxContextKey).(types.WebhookRegistrar); ok {
+		registrar.RegisterWebhook(webhook)
+	} else {
+		err = errors.WithStack(errors.Errorf("failed to retrieve WebhookRegistrar from context"))
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -62,9 +73,16 @@ func (h *Handler) GetWebhooks(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) GetWebhookContent(w http.ResponseWriter, r *http.Request) {
-	name := r.PathValue("name")
+	params, ok := r.Context().Value(paramContextKey).(map[string]string)
+	if !ok {
+		err := errors.WithStack(
+			errors.Errorf("failed to retrieve webhook name from context"))
+		log.Error().Stack().Err(err).Msg("")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
-	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), name)
+	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), params["name"])
 	if err != nil {
 		log.Error().Stack().Err(err).Msg("")
 		http.Error(w, err.Error(), http.StatusInternalServerError)
