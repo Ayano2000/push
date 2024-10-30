@@ -23,7 +23,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	logger.SetupLogger(conf)
+	logger.MustSetupLogger(conf)
 
 	handler, err := handlers.NewHandler(context.Background(), conf)
 	if err != nil {

@@ -59,10 +59,15 @@ func Transform(ctx context.Context, payload string, filter string) (string, erro
 	return string(result), nil
 }
 
-func ValidFilter(filter string) error {
+// IsValidFilter will return true if the filter is empty
+func IsValidFilter(filter string) (bool, error) {
 	if filter == "" {
-		return nil
+		return true, nil
 	}
 	_, err := gojq.Parse(filter)
-	return err
+	if err != nil {
+		return false, err
+	}
+
+	return true, nil
 }

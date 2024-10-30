@@ -12,14 +12,15 @@ import (
 )
 
 const (
-	PatternString                               = "%s %s"
+	patternString                               = "%s %s"
 	muxContextKey      types.MuxContextKey      = "router"
 	urlParamContextKey types.UrlParamContextKey = "parameters"
 )
 
 type Router struct {
-	mutex         sync.RWMutex
-	staticRoutes  map[string]*Route
+	mutex        sync.RWMutex
+	staticRoutes map[string]*Route
+
 	dynamicRoutes []*Route
 	handler       *handlers.Handler
 	middleware    []func(http.HandlerFunc) http.HandlerFunc
@@ -43,13 +44,13 @@ func NewDynamicMux(handler *handlers.Handler) *Router {
 }
 
 // parsePattern extracts parameter names and segments from a URL pattern
-func parsePattern(pattern string) (parameters []string, segments []string, isDynamic bool) {
+func parsePattern(pattern string) (params []string, segments []string, isDynamic bool) {
 	parts := strings.Split(pattern, "/")
 
 	for _, part := range parts {
 		if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
 			name := strings.Trim(part, "{}")
-			parameters = append(parameters, name)
+			params = append(params, name)
 			segments = append(segments, "*")
 			isDynamic = true
 		} else {
@@ -57,7 +58,7 @@ func parsePattern(pattern string) (parameters []string, segments []string, isDyn
 		}
 	}
 
-	return parameters, segments, isDynamic
+	return params, segments, isDynamic
 }
 
 func matchRoute(route *Route, method string, path string) (map[string]string, bool) {
@@ -114,7 +115,7 @@ func (dmux *Router) HandleFunc(pattern string, handler http.HandlerFunc) {
 
 // RegisterWebhook adds a new webhook route dynamically
 func (dmux *Router) RegisterWebhook(webhook types.Webhook) {
-	pattern := fmt.Sprintf(PatternString, webhook.Method, webhook.Path)
+	pattern := fmt.Sprintf(patternString, webhook.Method, webhook.Path)
 	dmux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
 		dmux.handler.HandleMessage(w, r, webhook)
 	})
@@ -125,7 +126,7 @@ func (dmux *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	dmux.mutex.RLock()
 	dmux.mutex.RUnlock()
 
-	pattern := fmt.Sprintf(PatternString, r.Method, r.URL.Path)
+	pattern := fmt.Sprintf(patternString, r.Method, r.URL.Path)
 	if route, exists := dmux.staticRoutes[pattern]; exists {
 		ctx := context.WithValue(r.Context(), muxContextKey, dmux)
 		r = r.WithContext(ctx)

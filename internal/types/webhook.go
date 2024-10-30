@@ -14,9 +14,3 @@ type Webhook struct {
 type WebhookRegistrar interface {
 	RegisterWebhook(webhook Webhook)
 }
-
-type MuxContextKey string
-type UrlParamContextKey string
-type loggerContextKey string
-
-const LoggerContextKey loggerContextKey = "logger"

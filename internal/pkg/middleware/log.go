@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const loggerContextKey types.LoggerContextKey = "logger"
+
 func LogRequest(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
@@ -20,7 +22,7 @@ func LogRequest(next http.HandlerFunc) http.HandlerFunc {
 			Logger()
 
 		// Store logger in request context
-		ctx := context.WithValue(r.Context(), types.LoggerContextKey, &log)
+		ctx := context.WithValue(r.Context(), loggerContextKey, &log)
 		r = r.WithContext(ctx)
 
 		// Call the next handler
