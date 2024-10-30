@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/handlers"
-	"github.com/Ayano2000/push/pkg/logger"
-	"github.com/Ayano2000/push/pkg/router"
+	"github.com/Ayano2000/push/internal/pkg/logger"
+	"github.com/Ayano2000/push/internal/pkg/router"
 	"net/http"
 	"os"
 )
