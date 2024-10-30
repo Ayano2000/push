@@ -1,15 +1,5 @@
 package types
 
-const (
-	LoggerContextKey   loggerContextKey   = "logger"
-	MuxContextKey      muxContextKey      = "router"
-	UrlParamContextKey urlParamContextKey = "parameters"
-)
-
-type muxContextKey string
-type urlParamContextKey string
-type loggerContextKey string
-
 type Webhook struct {
 	Name            string `json:"name"`
 	Description     string `json:"description"`

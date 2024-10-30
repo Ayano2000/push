@@ -11,7 +11,11 @@ import (
 	"sync"
 )
 
-const patternString = "%s %s"
+const (
+	patternString                               = "%s %s"
+	muxContextKey      types.MuxContextKey      = "router"
+	urlParamContextKey types.UrlParamContextKey = "parameters"
+)
 
 type Router struct {
 	mutex        sync.RWMutex
@@ -124,7 +128,7 @@ func (dmux *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	pattern := fmt.Sprintf(patternString, r.Method, r.URL.Path)
 	if route, exists := dmux.staticRoutes[pattern]; exists {
-		ctx := context.WithValue(r.Context(), types.MuxContextKey, dmux)
+		ctx := context.WithValue(r.Context(), muxContextKey, dmux)
 		r = r.WithContext(ctx)
 		dmux.applyMiddleware(route.handler)(w, r)
 		return
@@ -132,8 +136,8 @@ func (dmux *Router) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, route := range dmux.dynamicRoutes {
 		if params, ok := matchRoute(route, r.Method, r.URL.Path); ok {
-			ctx := context.WithValue(r.Context(), types.MuxContextKey, dmux)
-			ctx = context.WithValue(ctx, types.UrlParamContextKey, params)
+			ctx := context.WithValue(r.Context(), muxContextKey, dmux)
+			ctx = context.WithValue(ctx, urlParamContextKey, params)
 			r = r.WithContext(ctx)
 			dmux.applyMiddleware(route.handler)(w, r)
 			return

@@ -44,7 +44,7 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// update router to include this route
-	if registrar, ok := r.Context().Value(types.MuxContextKey).(types.WebhookRegistrar); ok {
+	if registrar, ok := r.Context().Value(muxContextKey).(types.WebhookRegistrar); ok {
 		registrar.RegisterWebhook(webhook)
 	} else {
 		err = errors.WithStack(errors.Errorf("failed to retrieve WebhookRegistrar from context"))
@@ -75,7 +75,7 @@ func (h *Handler) GetWebhooks(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetWebhookContent(w http.ResponseWriter, r *http.Request) {
 	log := logger.GetFromContext(r.Context())
 
-	params, ok := r.Context().Value(types.UrlParamContextKey).(map[string]string)
+	params, ok := r.Context().Value(urlParamContextKey).(map[string]string)
 	if !ok {
 		err := errors.WithStack(
 			errors.Errorf("failed to retrieve webhook name from context"))
