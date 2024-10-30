@@ -16,6 +16,10 @@ run: build
 clean:
 	rm -rf $(build_dir)
 
+.PHONY: test
+test:
+	go test ./...
+
 .PHONY: down
 down:
 	docker-compose down -v
