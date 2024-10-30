@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/Ayano2000/push/internal/handlers"
 	"github.com/Ayano2000/push/internal/pkg/middleware"
-	"github.com/Ayano2000/push/internal/types"
+	"github.com/Ayano2000/push/internal/pkg/types"
+	"github.com/pkg/errors"
 	"net/http"
 	"strings"
 	"sync"
@@ -172,10 +173,31 @@ func RegisterRoutes(handler *handlers.Handler) (*Router, error) {
 	dmux.HandleFunc("DELETE /webhooks/{name}/content", handler.DeleteWebhookContents)
 
 	// Register existing webhooks
-	var webhooks []types.Webhook
-	webhooks, err := handler.Services.DB.GetWebhooks(context.Background())
+	rows, err := handler.Services.DB.QueryContext(context.Background(), `SELECT * FROM webhooks`)
+	defer rows.Close()
 	if err != nil {
-		return nil, err
+		return nil, errors.WithStack(err)
+	}
+
+	var webhooks []types.Webhook
+	for rows.Next() {
+		var webhook types.Webhook
+		err = rows.Scan(
+			&webhook.Name,
+			&webhook.Path,
+			&webhook.Method,
+			&webhook.Description,
+			&webhook.JQFilter,
+			&webhook.ForwardTo,
+			&webhook.PreservePayload)
+		if err != nil {
+			return nil, errors.WithStack(err)
+		}
+		webhooks = append(webhooks, webhook)
+	}
+
+	if rows.Err() != nil {
+		return nil, errors.WithStack(err)
 	}
 
 	for _, webhook := range webhooks {
