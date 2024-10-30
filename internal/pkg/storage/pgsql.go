@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/Ayano2000/push/internal/config"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 // PostgresDB implements Database interface
@@ -13,7 +14,7 @@ type PostgresDB struct {
 
 // NewPostgresDB creates new PostgreSQL database instance
 func NewPostgresDB(config *config.Config) (*PostgresDB, error) {
-	db, err := sql.Open("postgres", config.DatabaseURL)
+	db, err := sql.Open("pgx", config.DatabaseURL)
 	if err != nil {
 		return nil, err
 	}
