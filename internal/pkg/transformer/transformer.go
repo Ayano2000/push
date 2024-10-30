@@ -17,9 +17,14 @@ func Transform(ctx context.Context, payload string, filter string) (string, erro
 	if err != nil {
 		return "", err
 	}
+	var object any
+	err = json.Unmarshal([]byte(payload), &object)
+	if err != nil {
+		return "", err
+	}
 
 	var results []interface{}
-	iter := query.RunWithContext(ctx, payload)
+	iter := query.RunWithContext(ctx, object)
 	for {
 		value, hasNextValue := iter.Next()
 		if !hasNextValue {
