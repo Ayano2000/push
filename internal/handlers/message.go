@@ -17,7 +17,7 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 	preTransform, err := io.ReadAll(r.Body)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to read request body")
-		http.Error(w, "Something went wrong", http.StatusInternalServerError)
+		http.Error(w, requestBodyDecodingErrorMessage, http.StatusInternalServerError)
 		return
 	}
 
@@ -25,7 +25,7 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 		err = h.Services.Minio.PutObject(r.Context(), wh, string(preTransform))
 		if err != nil {
 			log.Error().Err(err).Msg("failed to upload object to minio")
-			http.Error(w, err.Error(), http.StatusInternalServerError)
+			http.Error(w, minioUploadErrorMessage, http.StatusInternalServerError)
 			return
 		}
 	}
@@ -33,14 +33,14 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 	postTransform, err := transformer.Transform(r.Context(), string(preTransform), wh.JQFilter)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to process JQ transform")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, jqTransformErrorMessage, http.StatusInternalServerError)
 		return
 	}
 
 	err = h.Services.Minio.PutObject(r.Context(), wh, postTransform)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to upload object to minio")
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, minioUploadErrorMessage, http.StatusInternalServerError)
 		return
 	}
 
@@ -48,6 +48,6 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 
 	w.Header().Set("Content-Type", "application/json")
 	if _, err = w.Write([]byte(postTransform)); err != nil {
-		log.Printf("Error writing response: %v", err)
+		log.Error().Err(err).Msg("failed to write response")
 	}
 }
