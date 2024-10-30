@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/Ayano2000/push/internal/config"
-	"github.com/Ayano2000/push/internal/types"
+	"github.com/Ayano2000/push/internal/pkg/types"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/pkgerrors"
 	"os"

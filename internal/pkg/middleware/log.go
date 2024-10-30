@@ -2,7 +2,7 @@ package middleware
 
 import (
 	"context"
-	"github.com/Ayano2000/push/internal/types"
+	"github.com/Ayano2000/push/internal/pkg/types"
 	"github.com/rs/zerolog"
 	"net/http"
 	"time"

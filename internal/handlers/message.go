@@ -1,9 +1,9 @@
 package handlers
 
 import (
-	"github.com/Ayano2000/push/internal/pkg/logger"
-	"github.com/Ayano2000/push/internal/pkg/transformer"
-	"github.com/Ayano2000/push/internal/types"
+	"github.com/Ayano2000/push/internal/pkg/types"
+	"github.com/Ayano2000/push/pkg/logger"
+	"github.com/Ayano2000/push/pkg/transformer"
 	"io"
 	"net/http"
 )
@@ -22,7 +22,7 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 	}
 
 	if wh.PreservePayload {
-		err = h.Services.Minio.PutObject(r.Context(), wh, string(preTransform))
+		err = h.Services.Minio.PutObject(r.Context(), wh.Name, string(preTransform))
 		if err != nil {
 			log.Error().Err(err).Msg("failed to upload object to minio")
 			http.Error(w, minioUploadErrorMessage, http.StatusInternalServerError)
@@ -37,7 +37,7 @@ func (h *Handler) HandleMessage(w http.ResponseWriter, r *http.Request, wh types
 		return
 	}
 
-	err = h.Services.Minio.PutObject(r.Context(), wh, postTransform)
+	err = h.Services.Minio.PutObject(r.Context(), wh.Name, postTransform)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to upload object to minio")
 		http.Error(w, minioUploadErrorMessage, http.StatusInternalServerError)

@@ -2,9 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/Ayano2000/push/internal/pkg/logger"
-	"github.com/Ayano2000/push/internal/pkg/transformer"
-	"github.com/Ayano2000/push/internal/types"
+	"github.com/Ayano2000/push/internal/pkg/types"
+	"github.com/Ayano2000/push/pkg/logger"
+	"github.com/Ayano2000/push/pkg/transformer"
 	"github.com/pkg/errors"
 	"net/http"
 )
@@ -35,8 +35,17 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, createWebhookErrorMessage, http.StatusInternalServerError)
 		return
 	}
-
-	err = h.Services.DB.CreateWebhook(r.Context(), webhook)
+	_, err = h.Services.DB.ExecContext(r.Context(), `
+		INSERT INTO webhooks (name, path, method, description, jq_filter, forward_to, preserve_payload) 
+		VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		webhook.Name,
+		webhook.Path,
+		webhook.Method,
+		webhook.Description,
+		webhook.JQFilter,
+		webhook.ForwardTo,
+		webhook.PreservePayload,
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to create webhook row in psql")
 		http.Error(w, createWebhookErrorMessage, http.StatusInternalServerError)
@@ -59,8 +68,34 @@ func (h *Handler) CreateWebhook(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) GetWebhooks(w http.ResponseWriter, r *http.Request) {
 	log := logger.GetFromContext(r.Context())
 
-	webhooks, err := h.Services.DB.GetWebhooks(r.Context())
+	rows, err := h.Services.DB.QueryContext(r.Context(), `SELECT * FROM webhooks`)
+	defer rows.Close()
 	if err != nil {
+		log.Error().Err(err).Msg("")
+		http.Error(w, getWebhooksErrorMessage, http.StatusInternalServerError)
+		return
+	}
+
+	var webhooks []types.Webhook
+	for rows.Next() {
+		var webhook types.Webhook
+		err = rows.Scan(
+			&webhook.Name,
+			&webhook.Path,
+			&webhook.Method,
+			&webhook.Description,
+			&webhook.JQFilter,
+			&webhook.ForwardTo,
+			&webhook.PreservePayload)
+		if err != nil {
+			log.Error().Err(err).Msg("")
+			http.Error(w, getWebhooksErrorMessage, http.StatusInternalServerError)
+			return
+		}
+		webhooks = append(webhooks, webhook)
+	}
+
+	if rows.Err() != nil {
 		log.Error().Err(err).Msg("")
 		http.Error(w, getWebhooksErrorMessage, http.StatusInternalServerError)
 		return
@@ -84,14 +119,43 @@ func (h *Handler) GetWebhookContent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	webhook, err := h.Services.DB.GetWebhookByName(r.Context(), params["name"])
+	rows, err := h.Services.DB.QueryContext(r.Context(),
+		`SELECT * FROM webhooks WHERE name = $1 limit 1`,
+		params["name"],
+	)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to retrieve webhook from db")
 		http.Error(w, getWebhookContentErrorMessage, http.StatusInternalServerError)
 		return
 	}
+	defer rows.Close()
 
-	content, err := h.Services.Minio.GetObjects(r.Context(), webhook)
+	var webhooks []types.Webhook
+	for rows.Next() {
+		var webhook types.Webhook
+		err = rows.Scan(
+			&webhook.Name,
+			&webhook.Path,
+			&webhook.Method,
+			&webhook.Description,
+			&webhook.JQFilter,
+			&webhook.ForwardTo,
+			&webhook.PreservePayload)
+		if err != nil {
+			log.Error().Err(err).Msg("Failed to retrieve webhook from db")
+			http.Error(w, getWebhookContentErrorMessage, http.StatusInternalServerError)
+			return
+		}
+		webhooks = append(webhooks, webhook)
+	}
+
+	if rows.Err() != nil {
+		log.Error().Err(err).Msg("Failed to retrieve webhook from db")
+		http.Error(w, getWebhookContentErrorMessage, http.StatusInternalServerError)
+		return
+	}
+
+	content, err := h.Services.Minio.GetObjects(r.Context(), webhooks[0].Name)
 	if err != nil {
 		log.Error().Err(err).Msg("Failed to list objects from minio")
 		http.Error(w, getWebhookContentErrorMessage, http.StatusInternalServerError)
