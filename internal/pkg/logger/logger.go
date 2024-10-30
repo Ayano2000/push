@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func SetupLogger(config *config.Config) *zerolog.Logger {
+func MustSetupLogger(config *config.Config) *zerolog.Logger {
 	logFileName := fmt.Sprintf("request_log_%s.log", time.Now().Format("2006-01-02"))
 	logFilePath := filepath.Join(config.LogFilePath, logFileName)
 	logFile, err := os.OpenFile(logFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
