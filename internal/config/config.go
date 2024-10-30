@@ -15,8 +15,8 @@ type Config struct {
 	ServerAddress  string
 }
 
-func NewConfig(environment string) (*Config, error) {
-	err := godotenv.Load(environment)
+func NewConfig(env string) (*Config, error) {
+	err := godotenv.Load(env)
 	if err != nil {
 		return nil, err
 	}
