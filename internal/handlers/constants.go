@@ -1,6 +1,8 @@
 package handlers
 
-import "github.com/Ayano2000/push/internal/types"
+import (
+	"github.com/Ayano2000/push/internal/pkg/types"
+)
 
 // Context values
 const (

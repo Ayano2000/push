@@ -1,12 +1,11 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"github.com/Ayano2000/push/internal/config"
 	"github.com/Ayano2000/push/internal/handlers"
-	"github.com/Ayano2000/push/internal/pkg/logger"
-	"github.com/Ayano2000/push/internal/router"
+	"github.com/Ayano2000/push/pkg/logger"
+	"github.com/Ayano2000/push/pkg/router"
 	"net/http"
 	"os"
 )
@@ -25,7 +24,7 @@ func main() {
 
 	logger.MustSetupLogger(conf)
 
-	handler, err := handlers.NewHandler(context.Background(), conf)
+	handler, err := handlers.NewHandler(conf)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to create Handler: %v\n", err)
 		os.Exit(1)
